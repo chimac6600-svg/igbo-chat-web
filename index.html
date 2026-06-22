@@ -64,6 +64,9 @@ header .dot { width: 9px; height: 9px; border-radius: 50%; background: #2E7D55; 
   border: none; color: #f2f2f2; padding: 0; transition: background .08s;
 }
 .key:active { background: #4a4a55; }
+#pageLearn .key{position:relative;height:auto;padding-bottom:14px;}
+.latlab{position:absolute;bottom:1px;left:0;right:0;text-align:center;font-family:system-ui;font-size:9px;line-height:1;color:#9a9aa5;pointer-events:none;}
+
 .key.glyph { font-family: 'IgboGlyphs'; font-size: 18px; background: #3e3e46; padding-bottom: 4px; }
 .key.glyph.kcons { font-size: 14px; }
 .key.ctrl { background: #4a4a55; }
@@ -92,8 +95,8 @@ header .dot { width: 9px; height: 9px; border-radius: 50%; background: #2E7D55; 
     <div id="preview"></div>
     <div id="kbd"></div>
     <div id="sendbar">
-      <button id="clearbtn">Clear</button>
-      <button id="sendbtn" disabled>Send</button>
+      <button id="clearbtn" aria-label="Clear" title="Clear"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>
+      
     </div>
   </div>
 </div>
@@ -187,10 +190,11 @@ const kbd=document.getElementById('kbd'), preview=document.getElementById('previ
 // two keyboard pages inside #kbd: main (glyphs) and symbols
 const pageMain=document.createElement('div'); pageMain.className='kpage';
 const pageSym=document.createElement('div'); pageSym.className='kpage'; pageSym.style.display='none';
-kbd.appendChild(pageMain); kbd.appendChild(pageSym);
+kbd.appendChild(pageMain); kbd.appendChild(pageSym); const pageLearn=document.createElement('div'); pageLearn.id='pageLearn'; pageLearn.className='kpage'; pageLearn.style.display='none'; kbd.appendChild(pageLearn);
 function showSymbols(on){ pageMain.style.display=on?'none':''; pageSym.style.display=on?'':'none'; }
+function showLearn(on){ pageMain.style.display=on?'none':''; pageLearn.style.display=on?'':'none'; pageSym.style.display='none'; }
 
-function refresh(){ preview.innerHTML=unitsToHTML(snapshotUnits(), noun()); sendbtn.disabled = st.units.length===0 && !st.pend; }
+function refresh(){ preview.innerHTML=unitsToHTML(snapshotUnits(), noun()); if(sendbtn)sendbtn.disabled = st.units.length===0 && !st.pend; }
 function mkkey(cls, label, fn){ const b=document.createElement('button'); b.className='key '+cls; if(label!==null)b.textContent=label;
   b.addEventListener('click',()=>{ fn(); refresh(); }); return b; }
 function mkrow(){ const r=document.createElement('div'); r.className='krow'; return r; }
@@ -210,7 +214,7 @@ ROWS_CONS.forEach(row=>{ const rr=mkrow(); row.forEach(c=>rr.appendChild(mkkey('
                  high:'<svg viewBox=\'0 0 20 20\'><line x1=\'3\' y1=\'15\' x2=\'17\' y2=\'3\' stroke=\'currentColor\' stroke-width=\'2.4\' stroke-linecap=\'round\'/></svg>',
                  mid:'<svg viewBox=\'0 0 20 20\'><line x1=\'3\' y1=\'9\' x2=\'17\' y2=\'9\' stroke=\'currentColor\' stroke-width=\'2.4\' stroke-linecap=\'round\'/></svg>'};
   ['low','high','mid'].forEach(t=>{ const b=mkkey('ctrl tone',null,()=>Engine.tone(t)); b.innerHTML=toneSvg[t]; rr.appendChild(b); });
-  rr.appendChild(mkkey('ctrl','!#1',()=>showSymbols(true)));
+  rr.appendChild(mkkey('ctrl','!#1',()=>showSymbols(true))); rr.appendChild(mkkey('ctrl','\uD83D\uDCD6',()=>showLearn(true)));
   pageMain.appendChild(rr);
 }
 // control row: backspace, comma, period, space, forcebreak, nounlock, Enter
@@ -267,9 +271,16 @@ function sendMessage(){
   const msg={ units, noun: noun() };
   addMsg(msg,true); msgs.push(msg); Engine.clear(); refresh();
 }
-document.getElementById('sendbtn').addEventListener('click', sendMessage);
+
 document.getElementById('clearbtn').addEventListener('click',()=>{ Engine.clear(); refresh(); });
 refresh();
+
+(function buildLearn(){
+ function lkey(g,lat,fn){ const b=mkkey('glyph',g,fn); const sp=document.createElement('span'); sp.className='latlab'; sp.textContent=lat; b.appendChild(sp); return b; }
+ ROWS_CONS.forEach(row=>{ const rr=mkrow(); row.forEach(c=>rr.appendChild(lkey(consCap(c), R.clatin[c]||c, ()=>Engine.consonant(c)))); pageLearn.appendChild(rr); });
+ { const rr=mkrow(); R.vowels.forEach(v=>rr.appendChild(lkey(vowCap(v), R.vlatin[v]||v, ()=>Engine.vowel(v)))); pageLearn.appendChild(rr); }
+ { const rr=mkrow(); rr.appendChild(mkkey('accent','\uD83D\uDCD6',()=>showLearn(false))); const ent=mkkey('accent enter','\u23CE',()=>sendMessage()); rr.appendChild(ent); pageLearn.appendChild(rr); }
+})();
 </script>
 </body>
 </html>
