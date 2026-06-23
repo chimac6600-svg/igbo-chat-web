@@ -16,6 +16,9 @@ html, body {
   font-family: -apple-system, system-ui, sans-serif;
 }
 #app { display: flex; flex-direction: column; height: 100dvh; max-width: 720px; margin: 0 auto; }
+#kbdtoggle{ text-align:center; padding:4px; font-size:14px; color:#8a8a95; background:#1f1f26; cursor:pointer; user-select:none; border-top:1px solid #33333b; }
+#app.kbd-hidden #kbd{ display:none; }
+#preview{ cursor:text; }
 header {
   padding: 12px 16px; background: #1f1f27; border-bottom: 1px solid #2c2c36;
   font-weight: 600; font-size: 16px; display: flex; align-items: center; gap: 8px;
@@ -104,6 +107,7 @@ header .dot { width: 9px; height: 9px; border-radius: 50%; background: #2E7D55; 
   <div id="messages"><div class="empty" id="emptymsg">No messages yet.<br>Compose below and send.</div></div>
   <div id="composer">
     <div id="preview"></div>
+    <div id="kbdtoggle" title="Hide keyboard">▼</div>
     <div id="kbd"></div>
     
   </div>
@@ -280,6 +284,17 @@ function addMsg(msg, mine){
   messages.appendChild(d); messages.scrollTop=messages.scrollHeight;
 }
 window.addMsg = addMsg;
+(function(){
+  const app=document.getElementById('app');
+  const tog=document.getElementById('kbdtoggle');
+  const pv=document.getElementById('preview');
+  const msgs=document.getElementById('messages');
+  function hide(){ app.classList.add('kbd-hidden'); tog.textContent='\u25B2'; tog.title='Show keyboard'; }
+  function show(){ app.classList.remove('kbd-hidden'); tog.textContent='\u25BC'; tog.title='Hide keyboard'; }
+  if(tog) tog.addEventListener('click', ()=>{ app.classList.contains('kbd-hidden') ? show() : hide(); });
+  if(pv) pv.addEventListener('click', show);
+  if(msgs) msgs.addEventListener('click', show);
+})();
 function sendMessage(){
   commitPend();
   const units=snapshotUnits(); if(units.length===0)return;
