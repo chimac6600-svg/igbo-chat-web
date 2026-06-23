@@ -317,6 +317,7 @@ refresh();
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getDatabase, ref, push, onChildAdded, query, limitToLast } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 const app = initializeApp({
   apiKey: "AIzaSyAsbNXA5NUhUEAXfcsJg__hQhGCDf3PuYg",
   authDomain: "igbo-chat.firebaseapp.com",
@@ -328,9 +329,13 @@ const app = initializeApp({
 });
 const db = getDatabase(app);
 const msgsRef = ref(db, 'messages');
+const auth = getAuth(app);
+let AUTH_UID = '';
+onAuthStateChanged(auth, function(u){ if(u){ AUTH_UID = u.uid; } });
+signInAnonymously(auth).catch(function(e){ console.error('anon sign-in failed', e); });
 // unique id for this client so we don't re-render our own pushes
 const MEID = Math.random().toString(36).slice(2);
-window.__fbSend = function(payload){ try{ push(msgsRef, { me: MEID, body: payload, ts: Date.now() }); }catch(e){ console.error(e); } };
+window.__fbSend = function(payload){ try{ push(msgsRef, { me: MEID, body: payload, ts: Date.now(), uid: AUTH_UID }); }catch(e){ console.error(e); } };
 const seen = {};
 onChildAdded(query(msgsRef, limitToLast(100)), (snap)=>{
   const k = snap.key; if(seen[k]) return; seen[k]=1;
