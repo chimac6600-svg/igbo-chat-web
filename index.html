@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Igbo Script Chat</title>
+<title>Edemede</title>
 <style>
 @font-face {
   font-family: 'IgboGlyphs';
@@ -76,6 +76,7 @@ header .dot { width: 9px; height: 9px; border-radius: 50%; background: #2E7D55; 
 .latlab{position:absolute;bottom:1px;left:0;right:0;text-align:center;font-family:system-ui;font-size:9px;line-height:1;color:#9a9aa5;pointer-events:none;}
 
 .glyphtext{font-family:'IgboGlyphs';}
+#brandname{font-size:11px;letter-spacing:3px;font-weight:normal;vertical-align:middle;opacity:.92;}
 .key.accent{font-family:'IgboGlyphs';font-size:11px;letter-spacing:4px;}
 .key.glyph { font-family: 'IgboGlyphs'; font-size: 15px; background: #3e3e46; padding-bottom: 4px; }
 .key.glyph.kcons { font-size: 12px; }
@@ -99,7 +100,7 @@ header .dot { width: 9px; height: 9px; border-radius: 50%; background: #2E7D55; 
 </head>
 <body>
 <div id="app">
-  <header><span class="dot"></span> Igbo Script Chat <span id="fontctl"><button id="cysize" class="gbtn" aria-label="Compose size" title="Compose size"></button><button id="bysize" class="gbtn" aria-label="Message size" title="Message size"></button></span></header>
+  <header><span class="dot"></span> <span class="glyphtext" id="brandname"></span> <span id="fontctl"><button id="cysize" class="gbtn" aria-label="Compose size" title="Compose size"></button><button id="bysize" class="gbtn" aria-label="Message size" title="Message size"></button></span></header>
   <div id="messages"><div class="empty" id="emptymsg">No messages yet.<br>Compose below and send.</div></div>
   <div id="composer">
     <div id="preview"></div>
@@ -202,6 +203,8 @@ function addLat(b,t){ if(!t)return b; const sp=document.createElement('span'); s
 function showSymbols(on){ pageMain.style.display=on?'none':''; pageSym.style.display=on?'':'none'; }
 function showLearn(on){ document.body.classList.toggle('show-labels'); }
 
+const BRAND_UNITS=[{type:'vowel',v:'E',t:'high',g:'no_glide',l:'short'},{type:'mora',c:'D',v:'E',t:'high',g:'no_glide',l:'short'},{type:'mora',c:'M',v:'E',t:'high',g:'no_glide',l:'short'},{type:'mora',c:'D',v:'E',t:'high',g:'no_glide',l:'short'}];
+(function(){const bn=document.getElementById('brandname'); if(bn) bn.innerHTML=unitsToHTML(BRAND_UNITS, true);})();
 const PH_UNITS=[{type:'mora',c:'D',v:'E',t:'downstep',g:'no_glide',l:'long'},{type:'sep',ch:' '},{type:'vowel',v:'E',t:'high',g:'no_glide',l:'short'},{type:'mora',c:'B',v:'E',t:'high',g:'no_glide',l:'short'},{type:'sep',ch:' '},{type:'vowel',v:'A',t:'downstep',g:'no_glide',l:'short'}];
 function refresh(){ const snap=snapshotUnits(); if(snap.length===0){ preview.innerHTML='<span class="ph">'+unitsToHTML(PH_UNITS, true)+'</span><span class="cursor"></span>'; if(sendbtn)sendbtn.disabled=true; return; } preview.innerHTML=unitsToHTML(snap, noun())+'<span class="cursor"></span>'; if(sendbtn)sendbtn.disabled = st.units.length===0 && !st.pend; }
 function mkkey(cls, label, fn){ const b=document.createElement('button'); b.className='key '+cls; if(label!==null)b.textContent=label;
