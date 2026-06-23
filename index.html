@@ -47,16 +47,18 @@ header .dot { width: 9px; height: 9px; border-radius: 50%; background: #2E7D55; 
 
 #composer { border-top: 1px solid #2c2c36; background: #1b1b21; }
 #preview {
-  min-height: 40px; padding: 10px 16px; font-family: 'IgboGlyphs'; font-size: 26px;
+  min-height: 34px; max-height: 96px; overflow-y: auto; white-space: pre-wrap; padding: 8px 14px; font-family: 'IgboGlyphs'; font-size: var(--compose, 18px);
   line-height: 2.0; word-spacing: 0.4em; letter-spacing: 0.12em;
   word-break: break-word; border-bottom: 1px solid #2c2c36;
-  display: flex; align-items: center;
+  display: block;
 }
-#preview:empty::before { content: 'Tap glyphs to compose...'; font-family: system-ui; font-size: 14px; color: #5a5a65; }
+#preview .ph{opacity:.45;}
+#preview .cursor{display:inline-block;width:2px;height:1em;background:#5a8;margin-left:1px;vertical-align:text-bottom;animation:blink 1s step-start infinite;}
+@keyframes blink{50%{opacity:0;}}
 
-#kbd { padding: 6px; display: flex; flex-direction: column; gap: 4px; user-select: none; }
+#kbd { padding: 4px; display: flex; flex-direction: column; gap: 3px; user-select: none; }
 .kpage { display: flex; flex-direction: column; gap: 4px; }
-.krow { display: flex; gap: 4px; height: 32px; }
+.krow { display: flex; gap: 4px; height: 28px; }
 .key {
   flex: 1 1 0; min-width: 0; overflow: hidden;
   display: flex; align-items: center; justify-content: center;
@@ -66,14 +68,17 @@ header .dot { width: 9px; height: 9px; border-radius: 50%; background: #2E7D55; 
 .key:active { background: #4a4a55; }
 #fontctl{float:right;}
 #fontctl button{background:#34343c;color:#f2f2f2;border:none;border-radius:6px;font-size:13px;padding:2px 9px;margin-left:4px;cursor:pointer;}
+#fontctl .gbtn{font-size:9px;padding:2px 8px;line-height:1;}
 
 .show-labels .key.glyph{position:relative;height:auto;padding-bottom:13px;}
 .latlab{display:none;}
 .show-labels .latlab{display:block;}
 .latlab{position:absolute;bottom:1px;left:0;right:0;text-align:center;font-family:system-ui;font-size:9px;line-height:1;color:#9a9aa5;pointer-events:none;}
 
-.key.glyph { font-family: 'IgboGlyphs'; font-size: 18px; background: #3e3e46; padding-bottom: 4px; }
-.key.glyph.kcons { font-size: 14px; }
+.glyphtext{font-family:'IgboGlyphs';}
+.key.accent{font-family:'IgboGlyphs';font-size:11px;letter-spacing:4px;}
+.key.glyph { font-family: 'IgboGlyphs'; font-size: 15px; background: #3e3e46; padding-bottom: 4px; }
+.key.glyph.kcons { font-size: 12px; }
 .key.ctrl { background: #4a4a55; }
 .key.accent { background: #2E6F4E; }
 .key.wide { flex: 2.5; }
@@ -94,7 +99,7 @@ header .dot { width: 9px; height: 9px; border-radius: 50%; background: #2E7D55; 
 </head>
 <body>
 <div id="app">
-  <header><span class="dot"></span> Igbo Script Chat <span id="fontctl"><button id="fdec" aria-label="Smaller">A−</button><button id="finc" aria-label="Larger">A+</button></span></header>
+  <header><span class="dot"></span> Igbo Script Chat <span id="fontctl"><button id="cysize" class="gbtn" aria-label="Compose size" title="Compose size"></button><button id="bysize" class="gbtn" aria-label="Message size" title="Message size"></button></span></header>
   <div id="messages"><div class="empty" id="emptymsg">No messages yet.<br>Compose below and send.</div></div>
   <div id="composer">
     <div id="preview"></div>
@@ -197,7 +202,8 @@ function addLat(b,t){ if(!t)return b; const sp=document.createElement('span'); s
 function showSymbols(on){ pageMain.style.display=on?'none':''; pageSym.style.display=on?'':'none'; }
 function showLearn(on){ document.body.classList.toggle('show-labels'); }
 
-function refresh(){ preview.innerHTML=unitsToHTML(snapshotUnits(), noun()); if(sendbtn)sendbtn.disabled = st.units.length===0 && !st.pend; }
+const PH_UNITS=[{type:'mora',c:'D',v:'E',t:'downstep',g:'no_glide',l:'long'},{type:'sep',ch:' '},{type:'vowel',v:'E',t:'high',g:'no_glide',l:'short'},{type:'mora',c:'B',v:'E',t:'high',g:'no_glide',l:'short'},{type:'sep',ch:' '},{type:'vowel',v:'A',t:'downstep',g:'no_glide',l:'short'}];
+function refresh(){ const snap=snapshotUnits(); if(snap.length===0){ preview.innerHTML='<span class="ph">'+unitsToHTML(PH_UNITS, true)+'</span><span class="cursor"></span>'; if(sendbtn)sendbtn.disabled=true; return; } preview.innerHTML=unitsToHTML(snap, noun())+'<span class="cursor"></span>'; if(sendbtn)sendbtn.disabled = st.units.length===0 && !st.pend; }
 function mkkey(cls, label, fn){ const b=document.createElement('button'); b.className='key '+cls; if(label!==null)b.textContent=label;
   b.addEventListener('click',()=>{ fn(); refresh(); }); return b; }
 function mkrow(){ const r=document.createElement('div'); r.className='krow'; return r; }
@@ -211,13 +217,14 @@ ROWS_CONS.forEach(row=>{ const rr=mkrow(); row.forEach(c=>rr.appendChild(addLat(
 { const rr=mkrow(); R.vowels.forEach(v=>rr.appendChild(addLat(mkkey('glyph',vowCap(v),()=>Engine.vowel(v)), R.vlatin[v]||v))); pageMain.appendChild(rr); }
 // modifiers: glides, length, tones (tones drawn as SVG strokes), + !#1 symbols toggle
 { const rr=mkrow();
+  rr.appendChild(mkkey('ctrl','!#1',()=>showSymbols(true)));
   GLIDES4.forEach(g=>rr.appendChild(mkkey('glyph',glideCap(g),()=>Engine.glide(g))));
   rr.appendChild(mkkey('ctrl','\u5F61',()=>Engine.length()));
   const toneSvg={low:'<svg viewBox=\'0 0 20 20\'><line x1=\'3\' y1=\'3\' x2=\'17\' y2=\'15\' stroke=\'currentColor\' stroke-width=\'2.4\' stroke-linecap=\'round\'/></svg>',
                  high:'<svg viewBox=\'0 0 20 20\'><line x1=\'3\' y1=\'15\' x2=\'17\' y2=\'3\' stroke=\'currentColor\' stroke-width=\'2.4\' stroke-linecap=\'round\'/></svg>',
                  mid:'<svg viewBox=\'0 0 20 20\'><line x1=\'3\' y1=\'9\' x2=\'17\' y2=\'9\' stroke=\'currentColor\' stroke-width=\'2.4\' stroke-linecap=\'round\'/></svg>'};
   ['low','high','mid'].forEach(t=>{ const b=mkkey('ctrl tone',null,()=>Engine.tone(t)); b.innerHTML=toneSvg[t]; rr.appendChild(b); });
-  rr.appendChild(mkkey('ctrl','!#1',()=>showSymbols(true))); rr.appendChild(mkkey('ctrl','\uD83D\uDCD6',()=>showLearn(true)));
+  rr.appendChild(mkkey('ctrl','\uD83D\uDCD6',()=>showLearn(true)));
   pageMain.appendChild(rr);
 }
 // control row: backspace, comma, period, space, forcebreak, nounlock, Enter
@@ -248,11 +255,11 @@ const SYM_ROWS=[
 SYM_ROWS.forEach(row=>{ const rr=mkrow(); row.forEach(s=>rr.appendChild(mkkey('ctrl',s,()=>Engine.sep(s)))); pageSym.appendChild(rr); });
 // symbols control row: back, comma, period, space, backspace
 { const rr=mkrow();
-  rr.appendChild(mkkey('accent','ABG', ()=>showSymbols(false)));
-  rr.appendChild(mkkey('ctrl',',',()=>Engine.sep(',')));
+  
+  { const __ab=mkkey('accent',null,()=>showSymbols(false)); __ab.innerHTML='<span class="glyphtext">'+unitsToHTML([{type:'vowel',v:'A',t:'downstep',g:'no_glide',l:'short'},{type:'vowel',v:'E',t:'downstep',g:'no_glide',l:'short'},{type:'vowel',v:'I',t:'downstep',g:'no_glide',l:'short'}], true)+'</span>'; rr.appendChild(__ab); } rr.appendChild(mkkey('ctrl',',',()=>Engine.sep(',')));
   rr.appendChild(mkkey('ctrl','.',()=>Engine.sep('.')));
   rr.appendChild(mkkey('accent space','\u23B5',()=>Engine.sep(' ')));
-  rr.appendChild(mkkey('ctrl','\u232B',()=>Engine.backspace()));
+  rr.appendChild(mkkey('ctrl','\u232B',()=>Engine.backspace())); 
   const ent=mkkey('accent enter','\u23CE',()=>sendMessage());
   rr.appendChild(ent);
   pageSym.appendChild(rr);
@@ -266,7 +273,7 @@ function addMsg(msg, mine){
   const d=document.createElement('div'); d.className='msg'+(mine?' me':'');
   const g=document.createElement('div'); g.className='glyphtext';
   g.innerHTML=unitsToHTML(msg.units, msg.noun); d.appendChild(g);
-  const m=document.createElement('div'); m.className='meta'; m.textContent=mine?'You':'\u2014'; d.appendChild(m);
+  const m=document.createElement('div'); m.className='meta'; if(mine){ m.innerHTML='<span class="glyphtext" style="font-size:9px">'+unitsToHTML([{type:'mora',c:'M',v:'A',t:'high',g:'pre_uw',l:'short'}], true)+'</span>'; } else { m.innerHTML='<span class="glyphtext" style="font-size:9px">'+unitsToHTML([{type:'mora',c:'G',v:'i_dot',t:'high',g:'no_glide',l:'short'}], true)+'</span>'; } d.appendChild(m);
   messages.appendChild(d); messages.scrollTop=messages.scrollHeight;
 }
 window.addMsg = addMsg;
@@ -287,7 +294,7 @@ refresh();
  { const rr=mkrow(); rr.appendChild(mkkey('accent','\uD83D\uDCD6',()=>showLearn(false))); const ent=mkkey('accent enter','\u23CE',()=>sendMessage()); rr.appendChild(ent); pageLearn.appendChild(rr); }
 })();
 </script>
-<script>(function(){var sz=26;try{var v=localStorage.getItem('bubbleSz');if(v)sz=parseInt(v);}catch(e){}function apply(){document.documentElement.style.setProperty('--bubble',sz+'px');try{localStorage.setItem('bubbleSz',sz);}catch(e){}}var d=document.getElementById('fdec'),i=document.getElementById('finc');if(d)d.onclick=function(){sz=Math.max(14,sz-2);apply();};if(i)i.onclick=function(){sz=Math.min(40,sz+2);apply();};apply();})();</script>
+<script>(function(){var SZ=[10,12,14,16,18,20,22,24,26,28,30];function load(k,def){try{var v=localStorage.getItem(k);if(v!=null)return parseInt(v);}catch(e){}return def;}function save(k,v){try{localStorage.setItem(k,v);}catch(e){}}var ci=SZ.indexOf(load('composeSz',18));if(ci<0)ci=4;var bi=SZ.indexOf(load('bubbleSz',26));if(bi<0)bi=8;function applyC(){document.documentElement.style.setProperty('--compose',SZ[ci]+'px');save('composeSz',SZ[ci]);if(cb)cb.textContent='\u270E\u2195'+(ci+1);}function applyB(){document.documentElement.style.setProperty('--bubble',SZ[bi]+'px');save('bubbleSz',SZ[bi]);if(bb)bb.textContent='\uD83D\uDCAC\u2195'+(bi+1);}var cb=document.getElementById('cysize'),bb=document.getElementById('bysize');if(cb){cb.onclick=function(){ci=(ci+1)%SZ.length;applyC();};}if(bb){bb.onclick=function(){bi=(bi+1)%SZ.length;applyB();};}applyC();applyB();})();</script>
 </body>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
