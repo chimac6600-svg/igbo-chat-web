@@ -97,7 +97,7 @@ header .dot { width: 9px; height: 9px; border-radius: 50%; background: #2E7D55; 
   font-weight: 600; cursor: pointer;
 }
 #clearbtn { background: #34343c; color: #f2f2f2; }
-#sendbtn { background: #2E7D55; color: #fff; flex: 3; }
+#sendbtn { background: #2E7D55; color: #fff; flex: 3; display:flex; align-items:center; justify-content:center; font-size:20px; }
 #sendbtn:disabled { background: #2a4a3a; color: #88a; cursor: default; }
 </style>
 </head>
@@ -107,6 +107,7 @@ header .dot { width: 9px; height: 9px; border-radius: 50%; background: #2E7D55; 
   <div id="messages"><div class="empty" id="emptymsg">No messages yet.<br>Compose below and send.</div></div>
   <div id="composer">
     <div id="preview"></div>
+    <div id="sendbtn" title="Send">↑</div>
     <div id="kbdtoggle" title="Hide keyboard">▼</div>
     <div id="kbd"></div>
     
@@ -148,7 +149,7 @@ function uCharAt(u, isNoun){
 function unitsToHTML(units, isNoun){
   let out='';
   for(const u of units){
-    if(u.type==='sep'){ out+=escapeHtml(u.ch); continue; }
+    if(u.type==='sep'){ out+=(u.ch==='\n'?'<br>':escapeHtml(u.ch)); continue; }
     const ch=uCharAt(u, isNoun);
     const c=u.c||'';
     const isDesc=/^[PFST]$/.test(c);
@@ -247,7 +248,7 @@ ROWS_CONS.forEach(row=>{ const rr=mkrow(); row.forEach(c=>rr.appendChild(addLat(
   nl.textContent='';  // noun-lock label uses A + noun-A glyphs
   try { nl.textContent = String.fromCodePoint(983071) + String.fromCodePoint(988480); } catch(e){}
   rr.appendChild(nl);
-  const ent=mkkey('accent enter','\u23CE',()=>sendMessage()); ent.id='enterkey';
+  const ent=mkkey('accent enter','\u23CE',()=>Engine.sep('\n')); ent.id='enterkey';
   rr.appendChild(ent);
   pageMain.appendChild(rr);
 }
@@ -267,7 +268,7 @@ SYM_ROWS.forEach(row=>{ const rr=mkrow(); row.forEach(s=>rr.appendChild(mkkey('c
   rr.appendChild(mkkey('ctrl','.',()=>Engine.sep('.')));
   rr.appendChild(mkkey('accent space','\u23B5',()=>Engine.sep(' ')));
   rr.appendChild(mkkey('ctrl','\u232B',()=>Engine.backspace())); 
-  const ent=mkkey('accent enter','\u23CE',()=>sendMessage());
+  const ent=mkkey('accent enter','\u23CE',()=>Engine.sep('\n'));
   rr.appendChild(ent);
   pageSym.appendChild(rr);
 }
@@ -287,7 +288,7 @@ window.addMsg = addMsg;
 (function(){
   const app=document.getElementById('app');
   const tog=document.getElementById('kbdtoggle');
-  const pv=document.getElementById('preview');
+  const pv=document.getElementById('preview'); if(sendbtn) sendbtn.addEventListener('click',()=>sendMessage());
   const msgs=document.getElementById('messages');
   function hide(){ app.classList.add('kbd-hidden'); tog.textContent='\u25B2'; tog.title='Show keyboard'; }
   function show(){ app.classList.remove('kbd-hidden'); tog.textContent='\u25BC'; tog.title='Hide keyboard'; }
@@ -309,7 +310,7 @@ refresh();
  function lkey(g,lat,fn){ const b=mkkey('glyph',g,fn); const sp=document.createElement('span'); sp.className='latlab'; sp.textContent=lat; b.appendChild(sp); return b; }
  ROWS_CONS.forEach(row=>{ const rr=mkrow(); row.forEach(c=>rr.appendChild(lkey(consCap(c), R.clatin[c]||c, ()=>Engine.consonant(c)))); pageLearn.appendChild(rr); });
  { const rr=mkrow(); R.vowels.forEach(v=>rr.appendChild(lkey(vowCap(v), R.vlatin[v]||v, ()=>Engine.vowel(v)))); pageLearn.appendChild(rr); }
- { const rr=mkrow(); rr.appendChild(mkkey('accent','\uD83D\uDCD6',()=>showLearn(false))); const ent=mkkey('accent enter','\u23CE',()=>sendMessage()); rr.appendChild(ent); pageLearn.appendChild(rr); }
+ { const rr=mkrow(); rr.appendChild(mkkey('accent','\uD83D\uDCD6',()=>showLearn(false))); const ent=mkkey('accent enter','\u23CE',()=>Engine.sep('\n')); rr.appendChild(ent); pageLearn.appendChild(rr); }
 })();
 </script>
 <script>(function(){var SZ=[10,12,14,16,18,20,22,24,26,28,30];function load(k,def){try{var v=localStorage.getItem(k);if(v!=null)return parseInt(v);}catch(e){}return def;}function save(k,v){try{localStorage.setItem(k,v);}catch(e){}}var ci=SZ.indexOf(load('composeSz',18));if(ci<0)ci=4;var bi=SZ.indexOf(load('bubbleSz',26));if(bi<0)bi=8;function applyC(){document.documentElement.style.setProperty('--compose',SZ[ci]+'px');save('composeSz',SZ[ci]);if(cb)cb.textContent='\u270E\u2195'+(ci+1);}function applyB(){document.documentElement.style.setProperty('--bubble',SZ[bi]+'px');save('bubbleSz',SZ[bi]);if(bb)bb.textContent='\uD83D\uDCAC\u2195'+(bi+1);}var cb=document.getElementById('cysize'),bb=document.getElementById('bysize');if(cb){cb.onclick=function(){ci=(ci+1)%SZ.length;applyC();};}if(bb){bb.onclick=function(){bi=(bi+1)%SZ.length;applyB();};}applyC();applyB();})();</script>
