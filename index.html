@@ -297,7 +297,7 @@ window.addMsg = addMsg;
   const app=document.getElementById('app');
   const tog=document.getElementById('kbdtoggle');
   const pv=document.getElementById('preview'); if(sendbtn) sendbtn.addEventListener('click',()=>sendMessage());
-  { const pb=document.getElementById('pastebtn'); if(pb) pb.addEventListener('click',async function(){ try{ const t=await navigator.clipboard.readText(); if(t) Engine.text(t); }catch(e){ console.log('paste failed',e); } }); const eb=document.getElementById('emojibtn'); if(eb) eb.addEventListener('click',function(){ var open=pageEmoji.style.display!=='none'; if(open){ showEmoji(false); } else { buildEmojiPage('e'); showEmoji(true); } }); }
+  { const pb=document.getElementById('pastebtn'); if(pb) pb.addEventListener('click',async function(){ try{ const t=await navigator.clipboard.readText(); if(t){ Engine.text(t); refresh(); } }catch(e){ console.log('paste failed',e); } }); const eb=document.getElementById('emojibtn'); if(eb) eb.addEventListener('click',function(){ var open=pageEmoji.style.display!=='none'; if(open){ showEmoji(false); } else { buildEmojiPage('e'); showEmoji(true); } }); }
   const msgs=document.getElementById('messages');
   function hide(){ app.classList.add('kbd-hidden'); tog.textContent='\u25B2'; tog.title='Show keyboard'; }
   function show(){ app.classList.remove('kbd-hidden'); tog.textContent='\u25BC'; tog.title='Hide keyboard'; }
