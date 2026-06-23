@@ -279,13 +279,13 @@ SYM_ROWS.forEach(row=>{ const rr=mkrow(); row.forEach(s=>rr.appendChild(mkkey('c
 // ---- messages (Stage 1: local only) ----
 const messages=document.getElementById('messages'), emptymsg=document.getElementById('emptymsg');
 let msgs=[];
-function addMsg(msg, mine){
+function addMsg(msg, mine, key){
   if(emptymsg) emptymsg.remove();
   const d=document.createElement('div'); d.className='msg'+(mine?' me':'');
   const g=document.createElement('div'); g.className='glyphtext';
   g.innerHTML=unitsToHTML(msg.units, msg.noun); d.appendChild(g);
   const m=document.createElement('div'); m.className='meta'; if(mine){ m.innerHTML='<span class="glyphtext" style="font-size:9px">'+unitsToHTML([{type:'mora',c:'M',v:'A',t:'high',g:'pre_uw',l:'short'}], true)+'</span>'; } else { m.innerHTML='<span class="glyphtext" style="font-size:9px">'+unitsToHTML([{type:'mora',c:'G',v:'i_dot',t:'high',g:'no_glide',l:'short'}], true)+'</span>'; } d.appendChild(m);
-  messages.appendChild(d); messages.scrollTop=messages.scrollHeight;
+  if(key && window.IS_ADMIN){ const x=document.createElement('button'); x.type='button'; x.textContent='\u2715'; x.style.cssText='position:absolute;top:-6px;right:-6px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;color:#fff;background:#c0392b;border-radius:50%;cursor:pointer;font-size:14px;z-index:50;user-select:none;-webkit-user-select:none'; d.style.position='relative'; x.addEventListener('click',function(ev){ ev.preventDefault(); ev.stopPropagation(); window.__remove(window.__ref(window.__db,'messages/'+key)).then(function(){ d.remove(); }).catch(function(e){ var b=document.createElement('div'); b.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:8px;z-index:9999999;font-size:13px'; b.textContent='DELETE FAILED: '+(e&&e.message?e.message:e); document.body.appendChild(b); }); }); d.appendChild(x); } messages.appendChild(d); messages.scrollTop=messages.scrollHeight;
 }
 window.addMsg = addMsg;
 (function(){
@@ -320,7 +320,7 @@ refresh();
 </body>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-import { getDatabase, ref, push, onChildAdded, query, limitToLast, set, get, child } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+import { getDatabase, ref, push, onChildAdded, query, limitToLast, set, get, child, remove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 const app = initializeApp({
   apiKey: "AIzaSyAsbNXA5NUhUEAXfcsJg__hQhGCDf3PuYg",
@@ -333,9 +333,12 @@ const app = initializeApp({
 });
 const db = getDatabase(app);
 const msgsRef = ref(db, 'messages');
+window.__remove = remove; window.__ref = ref; window.__db = db;
+
 
 window.REDEEMED = (function(){ try{ return localStorage.getItem('inviteCode')||''; }catch(e){ return ''; } })();
-window.showCodeBox = function(){ if(document.getElementById('codebox')) return; var bar=document.createElement('div'); bar.id='codebox'; bar.style.cssText='position:fixed;top:0;left:0;right:0;background:#1b1b21;border-bottom:1px solid #2c2c36;padding:10px;z-index:99999;display:flex;gap:8px;align-items:center'; var inp=document.createElement('input'); inp.placeholder='Enter invite code'; inp.style.cssText='flex:1;padding:8px;border-radius:6px;border:1px solid #444;background:#0f0f14;color:#fff;font-size:16px'; var btn=document.createElement('button'); btn.textContent='Unlock'; btn.style.cssText='padding:8px 14px;border-radius:6px;border:none;background:#2E7D55;color:#fff;font-size:16px'; var msg=document.createElement('span'); msg.style.cssText='color:#f88;font-size:13px'; async function tryCode(){ var code=(inp.value||'').trim(); if(!code){ return; } btn.disabled=true; msg.textContent=''; try{ var snap=await get(child(ref(db),'invites/'+code+'/active')); if(snap.exists() && snap.val()===true){ try{ localStorage.setItem('inviteCode',code); }catch(e){} window.REDEEMED=code; if(AUTH_UID){ set(ref(db,'redemptions/'+AUTH_UID), code).catch(function(){}); } bar.remove(); } else { msg.textContent='Invalid or blocked code'; btn.disabled=false; } }catch(e){ msg.textContent='Error: '+e.message; btn.disabled=false; } } btn.addEventListener('click',tryCode); inp.addEventListener('keydown',function(e){ if(e.key==='Enter') tryCode(); }); bar.appendChild(inp); bar.appendChild(btn); bar.appendChild(msg); document.body.appendChild(bar); inp.focus(); }
+window.IS_ADMIN = (function(){ try{ return localStorage.getItem('isAdmin')==='1'; }catch(e){ return false; } })();
+window.showCodeBox = function(){ if(document.getElementById('codebox')) return; var bar=document.createElement('div'); bar.id='codebox'; bar.style.cssText='position:fixed;top:0;left:0;right:0;background:#1b1b21;border-bottom:1px solid #2c2c36;padding:10px;z-index:99999;display:flex;gap:8px;align-items:center'; var inp=document.createElement('input'); inp.placeholder='Enter invite code'; inp.style.cssText='flex:1;padding:8px;border-radius:6px;border:1px solid #444;background:#0f0f14;color:#fff;font-size:16px'; var btn=document.createElement('button'); btn.textContent='Unlock'; btn.style.cssText='padding:8px 14px;border-radius:6px;border:none;background:#2E7D55;color:#fff;font-size:16px'; var msg=document.createElement('span'); msg.style.cssText='color:#f88;font-size:13px'; async function tryCode(){ var code=(inp.value||'').trim(); if(!code){ return; } btn.disabled=true; msg.textContent=''; try{ var asnap=await get(child(ref(db),'invites/'+code)); var info=asnap.exists()?asnap.val():null; var isActive=info && (info.active===true || info.admin===true); if(isActive){ try{ localStorage.setItem('inviteCode',code); if(info.admin===true){ localStorage.setItem('isAdmin','1'); window.IS_ADMIN=true; } }catch(e){} window.REDEEMED=code; if(AUTH_UID){ set(ref(db,'redemptions/'+AUTH_UID), code).catch(function(){}); } bar.remove(); } else { msg.textContent='Invalid or blocked code'; btn.disabled=false; } }catch(e){ msg.textContent='Error: '+e.message; btn.disabled=false; } } btn.addEventListener('click',tryCode); inp.addEventListener('keydown',function(e){ if(e.key==='Enter') tryCode(); }); bar.appendChild(inp); bar.appendChild(btn); bar.appendChild(msg); document.body.appendChild(bar); inp.focus(); }
 const auth = getAuth(app);
 let AUTH_UID = '';
 onAuthStateChanged(auth, function(u){ if(u){ AUTH_UID = u.uid; } });
@@ -348,7 +351,7 @@ onChildAdded(query(msgsRef, limitToLast(100)), (snap)=>{
   const k = snap.key; if(seen[k]) return; seen[k]=1;
   const v = snap.val(); if(!v || !v.body) return;
   if(v.me === MEID) return; // our own message already shown locally
-  try{ window.addMsg(v.body, false); }catch(e){ console.error(e); }
+  try{ window.addMsg(v.body, false, k); }catch(e){ console.error(e); }
 });
 </script>
 
