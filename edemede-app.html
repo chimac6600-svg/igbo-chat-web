@@ -193,7 +193,7 @@
   .card{ background:var(--ink-soft); border:1px solid var(--ink-line); border-radius:14px; padding:13px 14px; }
   .card .h{ display:flex; align-items:center; gap:10px; margin-bottom:9px; }
   .card .av{ width:36px;height:36px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
-    font-weight:700;font-size:14px;color:#1c1714;background:linear-gradient(135deg,var(--clay),var(--clay-dim)); }
+    font-weight:700;font-size:14px;color:#1c1714;background:linear-gradient(135deg,var(--clay),var(--clay-dim));  color:#1a1a1a;}
   .card .who{ font-size:14px; font-weight:600; }
   .card .uname{ font-size:12px; color:var(--bone-dim); }
   .card .when{ font-size:11px; color:var(--sand); margin-left:auto; }
@@ -234,7 +234,7 @@
   .addreply:hover{ color:var(--bone); }
   .reply{ display:flex; gap:8px; align-items:flex-start; }
   .reply .rav{ width:26px;height:26px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
-    font-weight:700;font-size:11px;color:#1c1714;background:linear-gradient(135deg,var(--clay),var(--clay-dim)); }
+    font-weight:700;font-size:11px;color:#1c1714;background:linear-gradient(135deg,var(--clay),var(--clay-dim));  color:#1a1a1a;}
   .reply .rbody{ flex:1; min-width:0; }
   .reply .rhead{ display:flex; align-items:baseline; gap:6px; }
   .reply .rwho{ font-size:13px; font-weight:600; }
@@ -291,7 +291,7 @@
   .dhead .brand{ font-size:22px; font-weight:700; } .dhead .brand .gl{ color:var(--clay); }
   .dhead .me-row{ margin-top:12px; display:flex; align-items:center; gap:10px; }
   .avatar{ width:36px;height:36px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
-    font-weight:700;font-size:14px;color:#1c1714;background:linear-gradient(135deg,var(--clay),var(--clay-dim)); }
+    font-weight:700;font-size:14px;color:#1c1714;background:linear-gradient(135deg,var(--clay),var(--clay-dim));  color:#1a1a1a;}
   .me-row .n{ font-size:14px; } .me-row .s{ font-size:11px; color:var(--bone-dim); }
   .dscroll{ flex:1; overflow-y:auto; padding:6px 0 20px; }
   .seclabel{ display:flex; align-items:center; gap:10px; padding:16px 20px 8px; font-size:11px;
@@ -326,8 +326,9 @@
     border-radius:20px; padding:6px 14px; min-height:38px; cursor:text; }
   .search-glyph{ flex:1; min-height:1em; font-size:var(--compose,12px); overflow:hidden; white-space:nowrap; }
   .search-mag{ flex:0 0 auto; }
-  /* in search mode, the search bar is the only display — hide the keyboard's own preview strip */
-  body.search-mode #glyphPreview{ display:none !important; }
+  /* the live compose preview gets relocated here while searching */
+  #searchGlyphSlot{ flex:1; min-height:1.2em; overflow:hidden; }
+  #searchGlyphSlot #glyphPreview{ font-size:var(--compose,12px); padding:0; margin:0; min-height:1.2em; }
   #peopleSearch{ width:100%; box-sizing:border-box; background:var(--ink-soft); color:var(--bone); border:1px solid var(--ink-line); border-radius:20px; padding:8px 14px; font-size:15px; }
   .search-row, .inbox-row{ display:flex; align-items:center; gap:10px; padding:10px 12px; cursor:pointer; border-bottom:1px solid var(--ink-line); }
   .search-row:hover, .inbox-row:hover{ background:var(--ink-soft); }
@@ -422,7 +423,7 @@
     <div class="view" id="v-dms">
       <div class="dm-search">
         <div id="searchBar" class="search-bar">
-          <div id="peopleSearchGlyph" class="glyphtext search-glyph"></div>
+          <div id="searchGlyphSlot" class="search-glyph"></div>
           <span class="search-mag"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:var(--bone-dim);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></span>
         </div>
         <div id="searchResults"></div>
@@ -1247,7 +1248,7 @@ function initFontSizers(){
     // fill drawer identity
     $("meName").textContent = ME.name;
     $("meUser").textContent = "";
-    $("meAvatar").textContent = initialOf(ME.name);
+    $("meAvatar").innerHTML = personIcon(60);
     refreshMeIdentity();
     // Am I an admin? (admins/<uid> === true). Safe if the read is denied.
     get(child(ref(db), "admins/" + ME.uid))
@@ -1259,6 +1260,7 @@ function initFontSizers(){
   }
 
   function initialOf(s){ return (s || "?").trim().charAt(0).toUpperCase() || "?"; }
+  function personIcon(scale){ const w = scale || 60; return '<svg viewBox="0 0 24 24" style="width:'+w+'%;height:'+w+'%;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c0-3.8 3-6.5 7-6.5s7 2.7 7 6.5"/></svg>'; }
 
   /* ===================== DRAWER + NAV ===================== */
   const drawer = $("drawer"), scrim = $("scrim");
@@ -1290,7 +1292,7 @@ function initFontSizers(){
       if (typeof glyphTarget !== "undefined" && glyphTarget) closeGlyphReply();
       if (dmUnsub){ try{ dmUnsub(); }catch(_){} dmUnsub=null; dmCurrentId=null; }
       if (searchTimer){ clearInterval(searchTimer); searchTimer=null; }
-      document.body.classList.remove("search-mode");
+      if (document.body.classList.contains("search-mode")) restoreSearchPreview();
       $("barTitle").innerHTML = titles[v].t;
       $("barRight").innerHTML = titles[v].r;
       closeDrawer();
@@ -1394,12 +1396,10 @@ function initFontSizers(){
   let searchTimer = null;
   function runGlyphSearch(){
     const results = $("searchResults");
-    const preview = $("peopleSearchGlyph");
     if(!results) return;
     const snap = g_snapshot();
-    if(preview) preview.innerHTML = unitsToHTML(snap, g_noun());
-    const bar = $("searchBar"); if(bar) bar.classList.toggle("has-text", snap.length>0);
     const key = glyphKey(snap, g_noun());
+    if(!key){ results.innerHTML=""; return; }
     if(!key){ results.innerHTML=""; return; }
     const users = allUsersCache || {};
     const hits = [];
@@ -1414,8 +1414,8 @@ function initFontSizers(){
       const nameHTML=(u.glyphName&&u.glyphName.units)
         ? '<span class="glyphtext" style="font-size:var(--bubble,12px)">'+unitsToHTML(u.glyphName.units,!!u.glyphName.noun)+'</span>'
         : (u.name||"Someone");
-      row.innerHTML='<div class="sr-av">'+initialOf(u.name)+'</div><div class="sr-id"><div>'+nameHTML+'</div></div>';
-      row.addEventListener("click",()=>{ closeGlyphReply(); document.body.classList.remove("search-mode"); if(preview) preview.innerHTML=""; results.innerHTML=""; if(searchTimer){clearInterval(searchTimer);searchTimer=null;} openProfile(uid); });
+      row.innerHTML='<div class="sr-av">'+personIcon(60)+'</div><div class="sr-id"><div>'+nameHTML+'</div></div>';
+      row.addEventListener("click",()=>{ GEngine.clear(); if(searchTimer){clearInterval(searchTimer);searchTimer=null;} restoreSearchPreview(); closeGlyphReply(); results.innerHTML=""; openProfile(uid); });
       results.appendChild(row);
     });
   }
@@ -1425,11 +1425,26 @@ function initFontSizers(){
     if(!bar) return;
     bar.addEventListener("click", async ()=>{
       await loadAllUsers();
-      document.body.classList.add("search-mode");   // hide keyboard's own preview strip
+      document.body.classList.add("search-mode");
       openGlyphFor({ allowEmpty:true, onSend:()=>{} });
+      // relocate the REAL compose preview (with caret) into the search bar
+      const prev = $("glyphPreview");
+      const slot = $("searchGlyphSlot");
+      if(prev && slot){ slot.appendChild(prev); prev.style.display='block'; }
       if(searchTimer) clearInterval(searchTimer);
-      searchTimer = setInterval(()=>{ if(glyphTarget) runGlyphSearch(); else { clearInterval(searchTimer); searchTimer=null; document.body.classList.remove("search-mode"); } }, 250);
+      searchTimer = setInterval(()=>{
+        if(glyphTarget) runGlyphSearch();
+        else { clearInterval(searchTimer); searchTimer=null; restoreSearchPreview(); }
+      }, 250);
     });
+  }
+  function restoreSearchPreview(){
+    // move the preview back to the compose dock
+    const prev = $("glyphPreview");
+    const dock = $("composeDock");
+    const sendRow = $("glyphSendRow");
+    if(prev && dock && sendRow){ dock.insertBefore(prev, sendRow); }
+    document.body.classList.remove("search-mode");
   }
 
   async function loadInbox(){
@@ -1449,7 +1464,7 @@ function initFontSizers(){
         const nameHTML = (u.glyphName && u.glyphName.units)
           ? '<span class="glyphtext" style="font-size:var(--bubble,12px)">' + unitsToHTML(u.glyphName.units, !!u.glyphName.noun) + '</span>'
           : (u.name || "Someone");
-        row.innerHTML = '<div class="sr-av">' + initialOf(u.name) + '</div>' +
+        row.innerHTML = '<div class="sr-av">' + personIcon(60) + '</div>' +
           '<div class="sr-id"><div>' + nameHTML + '</div></div>';
         row.addEventListener("click", () => openDM(it.with, u));
         list.appendChild(row);
@@ -1477,7 +1492,7 @@ function initFontSizers(){
       : ((otherUser && otherUser.name) || "Someone");
     $("dmHeader").innerHTML =
       '<button class="dm-back" id="dmBack"><svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;"><path d="M15 6l-6 6 6 6"/></svg></button>' +
-      '<div class="dm-av">' + initialOf(otherUser && otherUser.name) + '</div>' +
+      '<div class="dm-av">' + personIcon(60) + '</div>' +
       '<div class="dm-name">' + nameHTML + '</div>';
     const back = $("dmBack"); if (back) back.addEventListener("click", () => { document.querySelector('.navrow[data-view="dms"]').click(); });
 
@@ -1586,7 +1601,7 @@ function initFontSizers(){
     card.__id = id; card.__post = post;
 
     const h = document.createElement("div"); h.className = "h";
-    const av = document.createElement("div"); av.className = "av"; av.textContent = initialOf(post.name);
+    const av = document.createElement("div"); av.className = "av"; av.innerHTML = personIcon(60);
     const who = document.createElement("div"); who.className = "who";
     if (post.gname && post.gname.units){
       who.className = "who glyphtext"; who.innerHTML = unitsToHTML(post.gname.units, !!post.gname.noun);
@@ -1898,7 +1913,7 @@ function initFontSizers(){
 
   function renderReply(postId, rid, r){
     const row = document.createElement("div"); row.className = "reply";
-    const av = document.createElement("div"); av.className = "rav"; av.textContent = initialOf(r.name);
+    const av = document.createElement("div"); av.className = "rav"; av.innerHTML = personIcon(60);
     const bodyWrap = document.createElement("div"); bodyWrap.className = "rbody";
     const head = document.createElement("div"); head.className = "rhead";
     const w = document.createElement("span"); w.className = "rwho";
